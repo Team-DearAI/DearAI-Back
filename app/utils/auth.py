@@ -115,28 +115,14 @@ def get_current_user(token: str):
 # 로그인 엔드포인트
 # -------------------------
 def login(request: Request):
-    origin = request.headers.get("origin", "")
-    
-    # Chrome Extension이면 redirect_uri 뒤에 query param으로 extension_id 추가
-    if origin.startswith(f"chrome-extension://{EXTENSION_ID}"):
-        redirect_uri = f"{GOOGLE_REDIRECT_URI}?extension_id={EXTENSION_ID}"
-    else:
-        redirect_uri = GOOGLE_REDIRECT_URI
-
-    return RedirectResponse(create_google_auth_url(redirect_uri))
+    return RedirectResponse(create_google_auth_url(GOOGLE_REDIRECT_URI))
 
 
 # -------------------------
 # 콜백 엔드포인트
 # -------------------------
 def auth_callback(request: Request, code: str, db: Session = Depends(get_db), extension_id: str = None):
-    # Google 토큰 요청 시 redirect_uri 재조합
-    if extension_id == EXTENSION_ID:
-        redirect_uri = f"{GOOGLE_REDIRECT_URI}?extension_id={EXTENSION_ID}"
-    else:
-        redirect_uri = GOOGLE_REDIRECT_URI
-
-    tokens = get_google_token(code, redirect_uri)
+    tokens = get_google_token(code, GOOGLE_REDIRECT_URI)
     access_token_google = tokens.get("access_token")
     refresh_token_google = tokens.get("refresh_token")
 
