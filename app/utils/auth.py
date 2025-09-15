@@ -121,17 +121,15 @@ def login(request: Request):
 # -------------------------
 # 콜백 엔드포인트
 # -------------------------
-def auth_callback(request: Request, code: str, db: Session = Depends(get_db), extension_id: str = None):
+def auth_callback(request: Request, code: str, db: Session = Depends(get_db)):
     tokens = get_google_token(code, GOOGLE_REDIRECT_URI)
     access_token_google = tokens.get("access_token")
     refresh_token_google = tokens.get("refresh_token")
 
     if not access_token_google:
         raise HTTPException(status_code=400, detail="Google auth failed")
-    
-    userinfo = get_google_userinfo(access_token_google)
 
-    # DB에서 사용자 찾기
+    userinfo = get_google_userinfo(access_token_google)
     user = db.query(User).filter(User.email == userinfo["email"]).first()
     if not user:
         user = User(
@@ -144,21 +142,17 @@ def auth_callback(request: Request, code: str, db: Session = Depends(get_db), ex
         db.add(user)
         db.commit()
 
-    # JWT 생성
     access_token = create_access_token({"email": user.email})
     refresh_token = create_refresh_token({"email": user.email})
 
-    # DB에 refresh token 저장
     user.refresh_token = refresh_token
     db.commit()
 
-    # Chrome Extension 요청이면 JSON 반환
     origin = request.headers.get("origin", "")
     if origin.startswith(f"chrome-extension://{EXTENSION_ID}"):
         return JSONResponse({"access_token": access_token, "refresh_token": refresh_token})
     else:
-        # 웹 브라우저면 query param으로 전달
-        return RedirectResponse(f"{GOOGLE_REDIRECT_URI}?access_token={access_token}&refresh_token={refresh_token}")
+        raise HTTPException(status_code=400, detail="Not a valid Chrome Extension request")
 
 
 # -------------------------
