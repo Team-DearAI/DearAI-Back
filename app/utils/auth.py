@@ -1,6 +1,6 @@
 import requests
-from fastapi import Depends, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from app.utils.db import get_db
 from app.utils.models import User
@@ -25,35 +25,40 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # Access token 1시간
 REFRESH_TOKEN_EXPIRE_DAYS = 30    # Refresh token 30일
 
+EXTENSION_ID = os.getenv("EXTENSION_ID")
+
+
 # -------------------------
 # 구글 인증 URL 생성
 # -------------------------
-def create_google_auth_url():
+def create_google_auth_url(redirect_uri: str):
     params = {
         "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
-        "access_type": "offline",  # refresh token 받기 위해 필수
-        "prompt": "consent"        # 매번 refresh token 발급
+        "access_type": "offline",
+        "prompt": "consent"
     }
     query = "&".join([f"{k}={v}" for k, v in params.items()])
     return f"{GOOGLE_AUTH_URI}?{query}"
 
+
 # -------------------------
 # 구글 토큰 요청
 # -------------------------
-def get_google_token(code: str):
+def get_google_token(code: str, redirect_uri: str):
     response = requests.post(GOOGLE_TOKEN_URI, data={
         "code": code,
         "client_id": GOOGLE_CLIENT_ID,
         "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "grant_type": "authorization_code"
     })
     if response.status_code != 200:
         raise HTTPException(status_code=400, detail="Failed to get Google token")
     return response.json()
+
 
 # -------------------------
 # 구글 사용자 정보 요청
@@ -65,6 +70,7 @@ def get_google_userinfo(access_token: str):
         raise HTTPException(status_code=400, detail="Failed to get user info")
     return response.json()
 
+
 # -------------------------
 # JWT 생성
 # -------------------------
@@ -75,12 +81,14 @@ def create_access_token(userinfo: dict):
     payload["type"] = "access"
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
+
 def create_refresh_token(userinfo: dict):
     expiration = datetime.datetime.utcnow() + datetime.timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     payload = userinfo.copy()
     payload["exp"] = expiration
     payload["type"] = "refresh"
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
 
 # -------------------------
 # JWT 디코드
@@ -93,6 +101,7 @@ def decode_jwt(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+
 # -------------------------
 # 현재 사용자 가져오기
 # -------------------------
@@ -100,19 +109,35 @@ def get_current_user(token: str):
     user = decode_jwt(token)
     return user
 
+
 # -------------------------
 # 로그인 엔드포인트
 # -------------------------
-def login():
-    return RedirectResponse(create_google_auth_url())
+def login(request: Request):
+    origin = request.headers.get("origin", "")
+    
+    # Chrome Extension이면 redirect_uri 뒤에 query param으로 extension_id 추가
+    if origin.startswith(f"chrome-extension://{EXTENSION_ID}"):
+        redirect_uri = f"{GOOGLE_REDIRECT_URI}?extension_id={EXTENSION_ID}"
+    else:
+        redirect_uri = GOOGLE_REDIRECT_URI
+
+    return RedirectResponse(create_google_auth_url(redirect_uri))
+
 
 # -------------------------
 # 콜백 엔드포인트
 # -------------------------
-def auth_callback(code: str, db: Session = Depends(get_db)):
-    tokens = get_google_token(code)
+def auth_callback(request: Request, code: str, db: Session = Depends(get_db), extension_id: str = None):
+    # Google 토큰 요청 시 redirect_uri 재조합
+    if extension_id == EXTENSION_ID:
+        redirect_uri = f"{GOOGLE_REDIRECT_URI}?extension_id={EXTENSION_ID}"
+    else:
+        redirect_uri = GOOGLE_REDIRECT_URI
+
+    tokens = get_google_token(code, redirect_uri)
     access_token_google = tokens.get("access_token")
-    refresh_token_google = tokens.get("refresh_token")  # 구글에서 발급된 refresh token
+    refresh_token_google = tokens.get("refresh_token")
 
     if not access_token_google:
         raise HTTPException(status_code=400, detail="Google auth failed")
@@ -132,18 +157,22 @@ def auth_callback(code: str, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
 
-    # JWT 토큰 생성
+    # JWT 생성
     access_token = create_access_token({"email": user.email})
     refresh_token = create_refresh_token({"email": user.email})
 
-    # DB에 refresh token 저장 (선택 사항)
+    # DB에 refresh token 저장
     user.refresh_token = refresh_token
     db.commit()
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    }
+    # Chrome Extension 요청이면 JSON 반환
+    origin = request.headers.get("origin", "")
+    if origin.startswith(f"chrome-extension://{EXTENSION_ID}"):
+        return JSONResponse({"access_token": access_token, "refresh_token": refresh_token})
+    else:
+        # 웹 브라우저면 query param으로 전달
+        return RedirectResponse(f"{GOOGLE_REDIRECT_URI}?access_token={access_token}&refresh_token={refresh_token}")
+
 
 # -------------------------
 # refresh token으로 access token 갱신
