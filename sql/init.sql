@@ -11,6 +11,7 @@ CREATE TABLE user (
     filter_keyword JSON NULL,
     time_modified DATETIME NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
+    refresh_token VARCHAR(512) DEFAULT NULL,
     PRIMARY KEY (id)
 );
 
