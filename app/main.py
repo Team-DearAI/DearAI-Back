@@ -14,6 +14,7 @@ app = FastAPI()
 
 # 크롬 익스텐션의 ID를 아래처럼 실제 확장ID로 지정합니다.
 origins = [
+    "https://dearai.cspark.my",
     f"chrome-extension://{EXTENSION_ID}"
 ]
 
