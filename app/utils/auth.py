@@ -15,7 +15,8 @@ load_dotenv()
 # 구글 API 관련 환경 변수
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+EXTENSION_ID = os.getenv("EXTENSION_ID")
+GOOGLE_REDIRECT_URI = f"chrome-extension://{EXTENSION_ID}"
 GOOGLE_AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URI = "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -25,7 +26,7 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # Access token 1시간
 REFRESH_TOKEN_EXPIRE_DAYS = 30    # Refresh token 30일
 
-EXTENSION_ID = os.getenv("EXTENSION_ID")
+
 
 
 # -------------------------
