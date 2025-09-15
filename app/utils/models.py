@@ -23,7 +23,7 @@ metadata.reflect(engine, only=['user', 'recipient_lists', 'inputs', 'results'])
 Base.prepare(engine, reflect=True)
 
 # 자동으로 생성된 클래스
-User = Base.classes.users
+User = Base.classes.user
 Recipient_lists = Base.classes.recipient_lists
 Inputs = Base.classes.inputs
 Results = Base.classes.results
