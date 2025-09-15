@@ -16,7 +16,7 @@ load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 EXTENSION_ID = os.getenv("EXTENSION_ID")
-GOOGLE_REDIRECT_URI = f"chrome-extension://{EXTENSION_ID}"
+GOOGLE_REDIRECT_URI = f"https://{EXTENSION_ID}.chromiumapp.org"
 GOOGLE_AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URI = "https://www.googleapis.com/oauth2/v2/userinfo"
