@@ -179,7 +179,7 @@ def auth_callback(request: Request, code: str, db: Session = Depends(get_db)):
 
     origin = request.headers.get("origin", "")
     logger.info(f"Request origin: {origin}")
-    if origin.startswith(f"chrome-extension://{EXTENSION_ID}"):
+    if origin.startswith(f"chrome-extension://{EXTENSION_ID}" or origin == ""):
         logger.info("Responding with JSON tokens to Chrome Extension")
         return JSONResponse({"access_token": access_token, "refresh_token": refresh_token})
     else:
