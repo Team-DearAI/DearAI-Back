@@ -10,6 +10,7 @@ import uuid
 import datetime
 import jwt  # PyJWT 사용
 import logging
+from urllib.parse import urlencode
 
 # 로거 설정 (기본 INFO 레벨, 필요시 DEBUG로 변경)
 logging.basicConfig(level=logging.INFO)
@@ -181,7 +182,13 @@ def auth_callback(request: Request, code: str, db: Session = Depends(get_db)):
     logger.info(f"Request origin: {origin}")
     if origin.startswith(f"chrome-extension://{EXTENSION_ID}" or origin == ""):
         logger.info("Responding with JSON tokens to Chrome Extension")
-        return JSONResponse({"access_token": access_token, "refresh_token": refresh_token})
+        redirect_params = urlencode({
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        })
+        redirect_url = f"https://{EXTENSION_ID}.chromiumapp.org?{redirect_params}"
+        logger.info(f"Redirecting back to extension with tokens: {redirect_url}")
+        return RedirectResponse(redirect_url)
     else:
         logger.warning("Invalid origin for Chrome Extension login request")
         raise HTTPException(status_code=400, detail="Not a valid Chrome Extension request")
