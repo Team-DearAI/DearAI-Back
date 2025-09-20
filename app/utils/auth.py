@@ -43,7 +43,7 @@ def create_google_auth_url(redirect_uri: str):
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": "openid email profile",
+        "scope": "openid%email%profile",
         "access_type": "offline",
         "prompt": "consent"
     }
