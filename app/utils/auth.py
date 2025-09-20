@@ -48,7 +48,6 @@ def create_google_auth_url(redirect_uri: str):
         "prompt": "consent"
     }
     auth_url = f"{GOOGLE_AUTH_URI}?{urlencode(params)}"
-    auth_url = auth_url.replace("scope=openid+email+profile", "scope=openid%email%profile")
     logger.info(f"Generated Google OAuth URL: {auth_url}")
     return auth_url
 
