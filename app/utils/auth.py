@@ -47,8 +47,7 @@ def create_google_auth_url(redirect_uri: str):
         "access_type": "offline",
         "prompt": "consent"
     }
-    query = "&".join([f"{k}={v}" for k, v in params.items()])
-    auth_url = f"{GOOGLE_AUTH_URI}?{query}"
+    auth_url = f"{GOOGLE_AUTH_URI}?{urlencode(params)}"
     logger.info(f"Generated Google OAuth URL: {auth_url}")
     return auth_url
 
