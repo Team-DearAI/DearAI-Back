@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 import uuid
 import datetime
-import jwt  # PyJWT 사용
+from jose import jwt, JWTError, ExpiredSignatureError   # python-jose 사용
 import logging
 from urllib.parse import urlencode
 
@@ -102,9 +102,9 @@ def create_refresh_token(userinfo: dict):
 def decode_jwt(token: str):
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 # -------------------------
