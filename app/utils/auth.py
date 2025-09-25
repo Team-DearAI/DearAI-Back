@@ -170,6 +170,15 @@ def auth_callback(request: Request, code: str, db: Session = Depends(get_db)):
     user.refresh_token = refresh_token
     db.commit()
 
+    redirect_params = urlencode({
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    })
+    redirect_url = f"https://{EXTENSION_ID}.chromiumapp.org?{redirect_params}"
+    logger.info(f"Redirecting back to extension with tokens: {redirect_url}")
+    return RedirectResponse(redirect_url)
+
+"""
     if origin.startswith(f"chrome-extension://{EXTENSION_ID}"):
         redirect_params = urlencode({
             "access_token": access_token,
@@ -185,6 +194,7 @@ def auth_callback(request: Request, code: str, db: Session = Depends(get_db)):
             "refresh_token": refresh_token,
             "message": "Login successful"
         })
+"""
 
 # -------------------------
 # Access token 재발급
