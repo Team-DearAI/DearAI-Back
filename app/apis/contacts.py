@@ -77,7 +77,7 @@ app = APIRouter()
 # -------------------------
 # 주소록 API
 # -------------------------
-@app.get("/contacts/")
+@app.get("/")
 def get_contacts(db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
     # 받은 user_id를 사용하여 recipient_lists를 조회
     contacts = db.query(Recipient_lists).filter(Recipient_lists.user_id == user_id).all()
