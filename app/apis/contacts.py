@@ -75,8 +75,8 @@ app = APIRouter()
 # -------------------------
 @app.get("/", response_model=list[ContactResponse])
 def get_contacts(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    print(f"User ID: {user}")
-    return db.query(Recipient_lists).filter(Recipient_lists.user_id == user).all()
+    print(f"User: {user}")  # User 객체 확인
+    return db.query(Recipient_lists).filter(Recipient_lists.user_id == user.id).all()
 
 
 @app.post("/", response_model=ContactResponse)
