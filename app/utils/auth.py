@@ -114,6 +114,7 @@ def decode_jwt(token: str):
 def get_current_user(token: str):
     payload = decode_jwt(token)  # JWT 디코드
     user_id = payload.get("user_id")  # JWT에서 user_id 추출
+    logger.info(f"INFO: get_current_user: {user_id}")
     return user_id
 
 # -------------------------
