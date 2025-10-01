@@ -114,8 +114,7 @@ def decode_jwt(token: str):
 def get_current_user(token: str):
     payload = decode_jwt(token)  # JWT 디코드
     user_id = payload.get("user_id")  # JWT에서 user_id 추출
-    user = db.query(User).filter(User.id == user_id).first()  # user_id로 DB에서 사용자 조회
-    return user
+    return user_id
 
 # -------------------------
 # 로그인 엔드포인트
