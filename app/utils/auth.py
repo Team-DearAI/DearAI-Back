@@ -80,13 +80,14 @@ def get_google_userinfo(access_token: str):
     return response.json()
 
 # -------------------------
-# JWT 생성
+# JWT 생성 (user_id 추가)
 # -------------------------
 def create_access_token(userinfo: dict):
     expiration = datetime.datetime.utcnow() + datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = userinfo.copy()
     payload["exp"] = expiration
     payload["type"] = "access"
+    payload["user_id"] = userinfo.get("user_id")  # user_id 추가
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 def create_refresh_token(userinfo: dict):
@@ -111,7 +112,10 @@ def decode_jwt(token: str):
 # 현재 사용자 가져오기
 # -------------------------
 def get_current_user(token: str):
-    return decode_jwt(token)
+    payload = decode_jwt(token)  # JWT 디코드
+    user_id = payload.get("user_id")  # JWT에서 user_id 추출
+    user = db.query(User).filter(User.id == user_id).first()  # user_id로 DB에서 사용자 조회
+    return user
 
 # -------------------------
 # 로그인 엔드포인트
@@ -164,8 +168,9 @@ def auth_callback(request: Request, code: str, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
 
-    access_token = create_access_token({"email": user.email})
-    refresh_token = create_refresh_token({"email": user.email})
+    # Access Token 생성 시 user_id를 포함
+    access_token = create_access_token({"email": user.email, "user_id": user.id})
+    refresh_token = create_refresh_token({"email": user.email, "user_id": user.id})
 
     user.refresh_token = refresh_token
     db.commit()
@@ -203,4 +208,4 @@ def refresh_access_token(refresh_token: str):
     payload = decode_jwt(refresh_token)
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Invalid token type")
-    return create_access_token({"email": payload["email"]})
+    return create_access_token({"email": payload["email"], "user_id": payload["user_id"]})
