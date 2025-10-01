@@ -11,6 +11,20 @@ import datetime
 from jose import jwt, JWTError, ExpiredSignatureError   # python-jose 사용
 import logging
 from urllib.parse import urlencode
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    filter_keyword: Optional[str] = None
+    time_created: datetime
+    time_modified: datetime
+
+    class Config:
+        orm_mode = True  # SQLAlchemy 모델을 Pydantic 모델로 변환할 수 있도록 설정
+
 
 # 로거 설정
 logging.basicConfig(level=logging.INFO)
@@ -120,7 +134,9 @@ def get_current_user(db: Session, token: str):
 
     # DB에서 user_id로 User 객체를 가져옴
     user = db.query(User).filter(User.id == user_id).first()
-    return user
+    
+    # User 객체를 Pydantic 모델(UserResponse)로 변환하여 반환
+    return UserResponse.from_orm(user)
 
 # -------------------------
 # 로그인 엔드포인트

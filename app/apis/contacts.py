@@ -3,10 +3,15 @@ from sqlalchemy.orm import Session
 from app.utils.db import get_db
 from app.utils.models import User, Recipient_lists, Inputs, Results
 from app.utils.auth import get_current_user
+from app.utils.auth import UserResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Any, Dict
 from datetime import datetime
+import logging
 
+# 로거 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # -------------------------
 # 주소록 (Recipient_lists)
@@ -74,8 +79,8 @@ app = APIRouter()
 # 주소록 API
 # -------------------------
 @app.get("/", response_model=list[ContactResponse])
-def get_contacts(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    print(f"User: {user}")  # User 객체 확인
+def get_contacts(db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
+    logger.info(f"User ID: {user.id}")  # UserResponse에서 user.id 사용
     return db.query(Recipient_lists).filter(Recipient_lists.user_id == user.id).all()
 
 
