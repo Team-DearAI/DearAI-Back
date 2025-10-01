@@ -12,9 +12,6 @@ import datetime
 from jose import jwt, JWTError, ExpiredSignatureError   # python-jose 사용
 import logging
 from urllib.parse import urlencode
-from pydantic import BaseModel
-from datetime import datetime
-from typing import Optional
 
 # 로거 설정
 logging.basicConfig(level=logging.INFO)
