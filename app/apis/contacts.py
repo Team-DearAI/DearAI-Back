@@ -78,10 +78,15 @@ app = APIRouter()
 # -------------------------
 # 주소록 API
 # -------------------------
-@app.get("/", response_model=list[ContactResponse])
-def get_contacts(db: Session = Depends(get_db), user: UserResponse = Depends(get_current_user)):
-    logger.info(f"User ID: {user.id}")  # UserResponse에서 user.id 사용
-    return db.query(Recipient_lists).filter(Recipient_lists.user_id == user.id).all()
+@app.get("/contacts/")
+def get_contacts(db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
+    # 받은 user_id를 사용하여 recipient_lists를 조회
+    contacts = db.query(Recipient_lists).filter(Recipient_lists.user_id == user_id).all()
+
+    if not contacts:
+        raise HTTPException(status_code=404, detail="No contacts found for this user")
+
+    return contacts  # FastAPI가 자동으로 SQLAlchemy 객체를 직렬화하여 JSON으로 반환
 
 
 @app.post("/", response_model=ContactResponse)

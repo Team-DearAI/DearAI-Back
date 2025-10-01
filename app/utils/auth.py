@@ -1,6 +1,7 @@
 import requests
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.utils.db import get_db
 from app.utils.models import User
@@ -14,17 +15,6 @@ from urllib.parse import urlencode
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
-
-class UserResponse(BaseModel):
-    id: str
-    email: str
-    filter_keyword: Optional[str] = None
-    time_created: datetime
-    time_modified: datetime
-
-    class Config:
-        orm_mode = True  # SQLAlchemy 모델을 Pydantic 모델로 변환할 수 있도록 설정
-
 
 # 로거 설정
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +35,9 @@ WEB_REDIRECT_URI = "https://dearai.cspark.my/auth/callback"
 JWT_SECRET = os.getenv("JWT_SECRET")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 30
+
+# OAuth2PasswordBearer를 사용하여 Authorization 헤더에서 Bearer 토큰을 추출
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # -------------------------
 # 구글 인증 URL 생성
@@ -125,18 +118,12 @@ def decode_jwt(token: str):
 # -------------------------
 # 현재 사용자 가져오기
 # -------------------------
-def get_current_user(db: Session, token: str):
-    logger.info("get_current_user가 콜이 되긴 했음")
-    payload = decode_jwt(token)  # JWT 디코드
-    logger.info(f"payload: {payload}")
-    user_id = payload.get("user_id")  # JWT에서 user_id 추출
-    logger.info(f"INFO: get_current_user: {user_id}")
-
-    # DB에서 user_id로 User 객체를 가져옴
-    user = db.query(User).filter(User.id == user_id).first()
-    
-    # User 객체를 Pydantic 모델(UserResponse)로 변환하여 반환
-    return UserResponse.from_orm(user)
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    payload = decode_jwt(token)
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token: user_id missing")
+    return user_id
 
 # -------------------------
 # 로그인 엔드포인트
