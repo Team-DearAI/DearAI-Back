@@ -49,6 +49,17 @@ def get_contacts(db: Session = Depends(get_db), user_id: User = Depends(get_curr
         raise HTTPException(status_code=404, detail="No contacts found for this user")
     return contacts
 
+@app.get("/groups")
+def get_groups(db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
+    groups = (
+        db.query(Recipient_lists.group)
+        .filter(Recipient_lists.user_id == user_id, Recipient_lists.group.isnot(None))
+        .distinct()
+        .all()
+    )
+    group_list = [g[0] for g in groups if g[0]]
+    return {"groups": group_list}
+
 
 @app.post("/")
 def create_contact(contact: ContactCreate, db: Session = Depends(get_db), user_id: User = Depends(get_current_user)):
