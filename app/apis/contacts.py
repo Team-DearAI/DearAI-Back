@@ -62,24 +62,34 @@ def get_groups(db: Session = Depends(get_db), user_id: str = Depends(get_current
 
 
 @app.post("/")
-def create_contact(contact: ContactCreate, db: Session = Depends(get_db), user_id: User = Depends(get_current_user)):
-    new_contact = Recipient_lists(user_id=user_id, **contact.dict())
+def create_contact(contact: ContactCreate, db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
+    new_contact = Recipient_lists(
+        user_id=user_id,
+        email=contact.email,
+        recipient_name=contact.name,        # name → recipient_name
+        recipient_group=contact.group       # group → recipient_group
+    )
     db.add(new_contact)
     db.commit()
     db.refresh(new_contact)
     return new_contact
 
-
 @app.patch("/{contact_id}")
-def update_contact(contact_id: str, update: ContactUpdate, db: Session = Depends(get_db), user_id: User = Depends(get_current_user)):
+def update_contact(contact_id: str, update: ContactUpdate, db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
     contact = db.query(Recipient_lists).filter(
         Recipient_lists.id == contact_id, Recipient_lists.user_id == user_id
     ).first()
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
 
-    for k, v in update.dict(exclude_unset=True).items():
-        setattr(contact, k, v)
+    update_data = update.dict(exclude_unset=True)
+    if "name" in update_data:
+        setattr(contact, "recipient_name", update_data.pop("name"))
+    if "email" in update_data:
+        setattr(contact, "email", update_data.pop("email"))
+    if "group" in update_data:
+        setattr(contact, "recipient_group", update_data.pop("group"))
+
     db.commit()
     db.refresh(contact)
     return contact
