@@ -5,6 +5,7 @@ from app.utils.models import User, Recipient_lists, Inputs, Results
 from app.utils.auth import get_current_user
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+import uuid
 
 # -------------------------
 # 주소록 (Recipient_lists)
@@ -64,6 +65,7 @@ def get_groups(db: Session = Depends(get_db), user_id: str = Depends(get_current
 @app.post("/")
 def create_contact(contact: ContactCreate, db: Session = Depends(get_db), user_id: str = Depends(get_current_user)):
     new_contact = Recipient_lists(
+        id=str(uuid.uuid4()),
         user_id=user_id,
         email=contact.email,
         recipient_name=contact.name,        # name → recipient_name
