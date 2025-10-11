@@ -7,3 +7,4 @@ python-jose
 requests
 uuid
 email-validator
+cryptography
