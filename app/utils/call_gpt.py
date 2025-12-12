@@ -54,4 +54,4 @@ def call_gpt(text = None, guide = None, recipient: dict=None):
         text_format=ai_result,
     )
 
-    return response.output_parsed
+    return response.output_parsed.dict()
