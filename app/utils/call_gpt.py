@@ -8,7 +8,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 # OpenAI 클라이언트 초기화 (환경변수 OPENAI_API_KEY 사용 권장)
-client = OpenAI(api_key=os.getenv("API_KEY"))
+client = OpenAI(api_key=os.getenv("GPT_API_KEY"))
 
 # Pydantic 출력 스키마
 class ai_result(BaseModel):
