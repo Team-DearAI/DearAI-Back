@@ -32,7 +32,8 @@ CREATE TABLE inputs (
     id CHAR(36) NOT NULL,
     input_data JSON NULL,
     time_requested DATETIME NULL,
-    recipient_id CHAR(36) NOT NULL,
+    recipient_id CHAR(36) NULL,
+    recipient_email VARCHAR(255) NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (recipient_id) REFERENCES recipient_lists(id)
 );

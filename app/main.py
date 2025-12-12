@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.utils.auth import login, auth_callback
 from app.apis.contacts import app as contact_router
+from app.apis.filter import app as filter_router
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -29,3 +30,4 @@ app.add_middleware(
 app.add_api_route("/login", login, methods=["GET"])
 app.add_api_route("/auth/callback", auth_callback, methods=["GET"])
 app.include_router(contact_router, prefix="/contacts", tags=["contact"])
+app.include_router(filter_router, prefix="/filter", tags=["filter"])
