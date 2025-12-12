@@ -38,7 +38,7 @@ async def get_filter_keywords(
 ):
     user: User = (
         db.query(User)
-        .filter(User.id == current_user.id)
+        .filter(User.id == current_user)
         .first()
     )
     if not user:
@@ -55,7 +55,7 @@ async def get_filter_keywords(
 async def add_filter_keywords(payload: FilterKeywordSchema, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     user: User = (
         db.query(User)
-        .filter(User.id == current_user.id)
+        .filter(User.id == current_user)
         .first()
     )
     if not user:
@@ -78,7 +78,7 @@ async def update_filter_keywords(
     payload: FilterKeywordSchema, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     user: User = (
         db.query(User)
-        .filter(User.id == current_user.id)
+        .filter(User.id == current_user)
         .first()
     )
     if not user:
@@ -102,18 +102,22 @@ async def process_external_request(payload: ExternalRequestSchema, db: Session =
     input_id = uuid.uuid4()
     input_row = Inputs(
         id=input_id,
-        data=payload,
+        input_data=payload.dict(),
         time_requested=datetime.utcnow(),
         recipient_email =  payload.email
     )
 
     recipient = None
-    if recipient_data := db.query(Recipient_lists).filter(Recipient_lists.email == payload.recipient_email, Recipient_lists.user_id == current_user.id).first():
-        recipient = {
-            "name": recipient_data.recipient_name,
-            "group": recipient_data.recipient_group
-        }
-        input_row.recipient_id = recipient_data.id
+    if payload.recipient:
+        if recipient_data := db.query(Recipient_lists).filter(
+            Recipient_lists.email == payload.recipient,
+            Recipient_lists.user_id == current_user,
+        ).first():
+            recipient = {
+                "name": recipient_data.recipient_name,
+                "group": recipient_data.recipient_group,
+            }
+            input_row.recipient_id = recipient_data.id
 
     # inputs 테이블에 요청 페이로드 저장
     db.add(input_row)
@@ -121,7 +125,7 @@ async def process_external_request(payload: ExternalRequestSchema, db: Session =
 
     result_row = Results(
         id=uuid.uuid4(),
-        data=call_gpt(payload.data, payload.guide, recipient),
+        result_data=call_gpt(payload.data, payload.guide, recipient),
         time_returned=datetime.utcnow(),
         input_id=input_row.id,
     )
