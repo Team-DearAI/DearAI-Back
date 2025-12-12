@@ -26,6 +26,8 @@ class ExternalRequestSchema(FilterKeywordSchema):
     title: str = None
     data: str = None
     guide: str = None
+    option: str
+    language: str
 
 class ExternalResultSchema(BaseModel):
     """외부 API 호출 결과"""
