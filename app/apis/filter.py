@@ -135,5 +135,5 @@ async def process_external_request(payload: ExternalRequestSchema, db: Session =
     db.refresh(result_row)
 
     # 4. API 응답으로 외부 API 결과 반환
-    return ExternalResultSchema(result=result_row.data)
+    return ExternalResultSchema(result=result_row.result_data)
 
