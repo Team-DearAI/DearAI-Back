@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, Any, Dict, List
 
+from app.tasks.filter import process_external_request_task
 
 app = APIRouter()
 
@@ -32,6 +33,15 @@ class ExternalRequestSchema(FilterKeywordSchema):
 class ExternalResultSchema(BaseModel):
     """외부 API 호출 결과"""
     result: Dict[str, Any]
+
+class JobCreateResponse(BaseModel):
+    job_id: str
+    task_id: str
+
+class JobPollResponse(BaseModel):
+    status: str  # PENDING | SUCCESS | FAILURE
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
 
 @app.get("/keywords", response_model=FilterKeywordSchema)
 async def get_filter_keywords(
@@ -139,3 +149,67 @@ async def process_external_request(payload: ExternalRequestSchema, db: Session =
     # 4. API 응답으로 외부 API 결과 반환
     return ExternalResultSchema(result=result_row.result_data)
 
+@app.post("/job", response_model=JobCreateResponse)
+async def enqueue_job(
+    payload: ExternalRequestSchema,
+    db: Session = Depends(get_db),
+    current_user_id = Depends(get_current_user), 
+):
+    if payload.email is None and payload.guide is None:
+        raise HTTPException(status_code=400, detail="Server received empty request")
+
+    input_id = uuid.uuid4()
+
+    input_row = Inputs(
+        id=input_id,
+        input_data=payload.dict(),
+        time_requested=datetime.utcnow(),
+        recipient_email=payload.email,
+    )
+
+    # recipient 매핑(기존 로직 유지)
+    if payload.recipient:
+        recipient_data = (
+            db.query(Recipient_lists)
+            .filter(
+                Recipient_lists.email == payload.recipient,
+                Recipient_lists.user_id == current_user_id,
+            )
+            .first()
+        )
+        if recipient_data:
+            input_row.recipient_id = recipient_data.id
+
+    db.add(input_row)
+    db.commit()
+    db.refresh(input_row)
+
+    # Celery task enqueue
+    async_result = process_external_request_task.delay(str(input_id), str(current_user_id), db)
+
+    return JobCreateResponse(job_id=str(input_id), task_id=async_result.id)
+
+@app.get("/job/{job_id}", response_model=JobPollResponse)
+async def poll_job(
+    job_id: str,
+    db: Session = Depends(get_db),
+    current_user_id = Depends(get_current_user),
+):
+    result_row = (
+        db.query(Results)
+        .filter(Results.input_id == job_id)
+        .first()
+    )
+
+    if result_row:
+        return JobPollResponse(status="SUCCESS", result=result_row.result_data)
+
+    input_exists = (
+        db.query(Inputs)
+        .filter(Inputs.id == job_id)
+        .first()
+    )
+    if not input_exists:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return JobPollResponse(status="PENDING")
